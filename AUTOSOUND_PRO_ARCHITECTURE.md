@@ -21,8 +21,8 @@ O fluxo macro baseia-se em uma arquitetura Multithread: O instalador altera a UI
 
 ## 4. ARQUITETURA GERAL
 A plataforma é rigidamente estratificada em **6 Camadas (6-Layer Architecture)** para evitar acoplamento de ciclo de clock.
-*   **UI Layer:** React.js + Tailwind. Burra e reativa.
-*   **State Layer:** Zustand persistido. Mantém a verdade estrutural.
+*   **UI Layer:** React.js + Tailwind. Camada de apresentação reativa e desacoplada de lógica pesada.
+*   **State Layer:** Zustand persistido em IndexedDB. Mantém a integridade dos dados entre sessões.
 *   **Event Layer:** `AudioEventBus`. Motor Frame-Sync Pub/Sub.
 *   **DSP Layer:** `AudioWorkletProcessor`. A usina matemática.
 *   **HAL Layer:** `BinaryEncoder`. Converte deltas para pacotes binários ASPBTP.
@@ -97,7 +97,7 @@ Ponte de interface física entre Web e Veículo.
     *   Tamanho: 9-Bytes atômicos.
     *   Arquitetura: Little-Endian (compatibilidade direta ARM/Xtensa).
     *   Segurança: Validação por CRC-8 (Polinômio 0x31) contra ruído de alternador (EMI).
-*   Suporta Transporte agnóstico via WebBLE (Bluetooth Low Energy) ou WebSerial (Cabo USB).
+*   Suporta transporte agnóstico via WebBLE (Bluetooth Low Energy) ou WebSerial (USB), garantindo compatibilidade com diversos integradores de hardware.
 
 ## 11. FAULT TOLERANCE SYSTEM
 O ambiente automotivo é termicamente instável e eletricamente barulhento.
@@ -117,8 +117,8 @@ Motor de Time-Travel e Projetos.
 
 ## 14. SECURITY ARCHITECTURE
 Proteção de Memória de Nível Militar.
-*   **Cross-Origin Isolation:** Injeção rígida de `COOP` e `COEP` na borda (Edge Middleware/Next.js).
-*   **Spectre Protection:** Impede vazamentos de RAM e destranca o uso agressivo de `SharedArrayBuffer` sem comprometer a segurança da malha web.
+*   **Cross-Origin Isolation:** Configuração rigorosa de `COOP` (Cross-Origin-Opener-Policy) e `COEP` (Cross-Origin-Embedder-Policy) para habilitar recursos de memória avançados.
+*   **Spectre Protection:** Garante a segurança contra ataques de canal lateral, permitindo o uso seguro de `SharedArrayBuffer` no navegador.
 
 ## 15. TELEMETRY & PROFILING
 A métrica não mente.

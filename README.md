@@ -9,6 +9,12 @@
 
 ---
 
+## 📸 Interface Preview
+
+![AutoSound Pro Dashboard](https://github.com/jonatascavalcanti03/AutoSound-Pro/blob/main/docs/screenshots/dashboard_preview.png?raw=true)
+
+---
+
 ## 🚀 Visão Geral
 
 O **AutoSound Pro** é uma plataforma SaaS e ferramenta de engenharia projetada para revolucionar o ajuste e calibração de sistemas de áudio automotivo. Diferente de softwares tradicionais lentos e limitados a plataformas específicas, o AutoSound Pro traz o poder de um DSP (Digital Signal Processor) profissional diretamente para o navegador, com latência sub-10ms e interface ultra-responsiva.
@@ -23,6 +29,7 @@ Utilizando tecnologias de ponta como **AudioWorklets**, **SharedArrayBuffers** e
 - 📈 **Equalizador Interativo:** Interface gráfica fluida para ajuste de filtros paramétricos com feedback visual instantâneo.
 - 🔊 **Crossover de Alta Ordem:** Filtros Linkwitz-Riley e Butterworth de até 48dB/oct para proteção e fidelidade dos alto-falantes.
 - 🛰️ **Hardware Mode (HAL):** Comunicação direta com módulos físicos (ESP32 / SigmaDSP) via **WebBluetooth** e **WebSerial**.
+- ⚡ **Ultra Low Latency:** Engine otimizada atingindo **2.9ms** de latência de processamento em ambiente de produção.
 - 🛡️ **Panic System:** Algoritmo Watchdog que monitora a saúde do motor de áudio e protege o hardware em caso de falhas.
 - ☁️ **Cloud Sync & Presets:** Sincronização inteligente de perfis de áudio entre a nuvem e a memória física do veículo.
 
