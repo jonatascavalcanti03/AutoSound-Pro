@@ -1,0 +1,1 @@
+export { VerticalFader } from './VerticalFader'
