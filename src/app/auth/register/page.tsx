@@ -1,11 +1,14 @@
 'use client'
 import { useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Activity, ShieldCheck, TerminalSquare, Loader2, Cpu, AlertTriangle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
+type AuthMode = 'options' | 'email'
+
 export default function RegisterPage() {
+  const [mode, setMode]         = useState<AuthMode>('options')
   const [step, setStep]         = useState(0)
   const [name, setName]         = useState('')
   const [email, setEmail]       = useState('')
@@ -14,7 +17,25 @@ export default function RegisterPage() {
   const [loading, setLoading]   = useState(false)
   const router = useRouter()
 
-  const handleRegister = async (e: React.FormEvent) => {
+  // ── GitHub OAuth ──────────────────────────────────────────────────────────
+  const handleGitHubRegister = async () => {
+    setError(null)
+    setLoading(true)
+    const supabase = createClient()
+    const { error: oauthError } = await supabase.auth.signInWithOAuth({
+      provider: 'github',
+      options: {
+        redirectTo: `${location.origin}/auth/callback`,
+      },
+    })
+    if (oauthError) {
+      setLoading(false)
+      setError('Falha ao conectar com GitHub. Tente novamente.')
+    }
+  }
+
+  // ── E-mail + Senha ────────────────────────────────────────────────────────
+  const handleEmailRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
     setLoading(true)
@@ -29,9 +50,7 @@ export default function RegisterPage() {
     const { error: authError } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        data: { display_name: name }, // salvo em user_metadata
-      },
+      options: { data: { display_name: name } },
     })
 
     if (authError) {
@@ -44,21 +63,17 @@ export default function RegisterPage() {
       return
     }
 
-    // Sucesso — dispara a sequência de boot animada
+    // Sucesso — animação de boot
     setLoading(false)
     setStep(1)
-    const t1 = setTimeout(() => setStep(2), 1500)
-    const t2 = setTimeout(() => setStep(3), 3000)
-    const t3 = setTimeout(() => {
-      router.push('/studio')
-    }, 4500)
-
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
+    setTimeout(() => setStep(2), 1500)
+    setTimeout(() => setStep(3), 3000)
+    setTimeout(() => { router.push('/studio') }, 4500)
   }
 
   return (
     <div className="min-h-screen bg-void text-white flex flex-col items-center justify-center p-6 relative overflow-hidden">
-      {/* Background Ambience */}
+      {/* Background */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-signal/5 via-void to-void pointer-events-none" />
       <div
         className="absolute inset-0 opacity-[0.04] pointer-events-none"
@@ -68,14 +83,14 @@ export default function RegisterPage() {
         }}
       />
 
-      {/* Auth Container */}
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
         className="w-full max-w-xl bg-[#050505]/80 backdrop-blur-3xl border border-white/10 rounded-[40px] shadow-[0_0_100px_rgba(0,255,148,0.05)] p-12 relative z-10"
       >
-        <div className="flex flex-col items-center mb-12">
+        {/* Header */}
+        <div className="flex flex-col items-center mb-10">
           <div className="w-20 h-20 rounded-3xl bg-void border border-white/10 flex items-center justify-center mb-6 shadow-glow">
             <Cpu size={32} className="text-signal" />
           </div>
@@ -87,119 +102,167 @@ export default function RegisterPage() {
           </p>
         </div>
 
+        {/* ── Se ainda não iniciou o boot ── */}
         {step === 0 ? (
-          <form onSubmit={handleRegister} className="flex flex-col gap-6">
-            {/* Error Banner */}
-            {error && (
+          <AnimatePresence mode="wait">
+
+            {/* Tela de opções */}
+            {mode === 'options' && (
               <motion.div
-                initial={{ opacity: 0, y: -8 }}
+                key="options"
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-3 bg-red-500/10 border border-red-500/30 text-red-400 rounded-2xl px-5 py-4 text-sm font-mono"
+                exit={{ opacity: 0, y: -10 }}
+                className="flex flex-col gap-4"
               >
-                <AlertTriangle size={16} className="shrink-0" />
-                {error}
+                <AnimatePresence>
+                  {error && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="flex items-center gap-3 bg-red-500/10 border border-red-500/30 text-red-400 rounded-2xl px-5 py-4 text-sm font-mono"
+                    >
+                      <AlertTriangle size={16} className="shrink-0" />
+                      {error}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* GitHub */}
+                <button
+                  onClick={handleGitHubRegister}
+                  disabled={loading}
+                  className="w-full flex items-center justify-center gap-4 bg-white text-void font-bold font-mono text-sm tracking-widest uppercase rounded-2xl px-6 py-6 hover:scale-[1.02] transition-all shadow-[0_0_30px_rgba(255,255,255,0.15)] disabled:opacity-60 disabled:scale-100"
+                >
+                  {loading ? <Loader2 size={20} className="animate-spin" /> : <GitHubIcon size={20} />}
+                  {loading ? 'Redirecionando...' : 'Criar conta com GitHub'}
+                </button>
+
+                {/* Divisor */}
+                <div className="flex items-center gap-4 my-2">
+                  <div className="flex-1 h-px bg-white/10" />
+                  <span className="text-xs font-mono text-text-muted uppercase tracking-widest">ou</span>
+                  <div className="flex-1 h-px bg-white/10" />
+                </div>
+
+                {/* E-mail */}
+                <button
+                  onClick={() => { setError(null); setMode('email') }}
+                  disabled={loading}
+                  className="w-full flex items-center justify-center gap-3 bg-void border border-white/10 text-white/70 hover:text-white font-mono text-sm tracking-widest uppercase rounded-2xl px-6 py-5 hover:border-signal/40 hover:bg-signal/5 transition-all disabled:opacity-50"
+                >
+                  <ShieldCheck size={18} />
+                  Criar com E-mail e Senha
+                </button>
+
+                <div className="mt-4 text-center">
+                  <a
+                    href="/auth/login"
+                    className="text-xs font-mono text-text-secondary hover:text-white transition-colors tracking-widest uppercase"
+                  >
+                    Já possui uma Runtime? Fazer Login
+                  </a>
+                </div>
               </motion.div>
             )}
 
-            <div className="space-y-2">
-              <label className="text-xs font-mono text-text-muted tracking-widest uppercase ml-2">
-                Identificação (Nome)
-              </label>
-              <input
-                type="text"
-                required
-                value={name}
-                onChange={e => setName(e.target.value)}
-                disabled={loading}
-                className="w-full bg-void border border-white/10 rounded-2xl px-6 py-5 text-white font-mono placeholder:text-white/20 focus:outline-none focus:border-signal/50 focus:ring-1 focus:ring-signal/50 transition-all disabled:opacity-50"
-                placeholder="Ex: Engenheiro Acústico"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-mono text-text-muted tracking-widest uppercase ml-2">
-                ID de Sessão (E-mail)
-              </label>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                disabled={loading}
-                className="w-full bg-void border border-white/10 rounded-2xl px-6 py-5 text-white font-mono placeholder:text-white/20 focus:outline-none focus:border-signal/50 focus:ring-1 focus:ring-signal/50 transition-all disabled:opacity-50"
-                placeholder="audio@system.local"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-mono text-text-muted tracking-widest uppercase ml-2">
-                Chave Mestra (Senha — mín. 6 caracteres)
-              </label>
-              <input
-                type="password"
-                required
-                minLength={6}
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                disabled={loading}
-                className="w-full bg-void border border-white/10 rounded-2xl px-6 py-5 text-white font-mono placeholder:text-white/20 focus:outline-none focus:border-signal/50 focus:ring-1 focus:ring-signal/50 transition-all disabled:opacity-50"
-                placeholder="Crie uma chave segura"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full mt-4 bg-signal text-void font-bold font-mono text-sm tracking-widest uppercase rounded-2xl px-6 py-6 hover:scale-[1.02] transition-all shadow-[0_0_30px_rgba(0,255,148,0.2)] flex items-center justify-center gap-3 disabled:opacity-60 disabled:scale-100"
-            >
-              {loading ? (
-                <Loader2 size={20} className="animate-spin" />
-              ) : (
-                <ShieldCheck size={20} />
-              )}
-              {loading ? 'Configurando...' : 'Configurar Ambiente Realtime'}
-            </button>
-
-            <div className="mt-6 text-center">
-              <a
-                href="/auth/login"
-                className="text-xs font-mono text-text-secondary hover:text-white transition-colors tracking-widest uppercase"
+            {/* Formulário de e-mail */}
+            {mode === 'email' && (
+              <motion.form
+                key="email"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                onSubmit={handleEmailRegister}
+                className="flex flex-col gap-6"
               >
-                Já possui uma Runtime? Fazer Login
-              </a>
-            </div>
-          </form>
+                <AnimatePresence>
+                  {error && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="flex items-center gap-3 bg-red-500/10 border border-red-500/30 text-red-400 rounded-2xl px-5 py-4 text-sm font-mono"
+                    >
+                      <AlertTriangle size={16} className="shrink-0" />
+                      {error}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-mono text-text-muted tracking-widest uppercase ml-2">Nome</label>
+                  <input type="text" required value={name} onChange={e => setName(e.target.value)} disabled={loading}
+                    className="w-full bg-void border border-white/10 rounded-2xl px-6 py-5 text-white font-mono placeholder:text-white/20 focus:outline-none focus:border-signal/50 focus:ring-1 focus:ring-signal/50 transition-all disabled:opacity-50"
+                    placeholder="Ex: Engenheiro Acústico" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-mono text-text-muted tracking-widest uppercase ml-2">E-mail</label>
+                  <input type="email" required value={email} onChange={e => setEmail(e.target.value)} disabled={loading}
+                    className="w-full bg-void border border-white/10 rounded-2xl px-6 py-5 text-white font-mono placeholder:text-white/20 focus:outline-none focus:border-signal/50 focus:ring-1 focus:ring-signal/50 transition-all disabled:opacity-50"
+                    placeholder="audio@system.local" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-mono text-text-muted tracking-widest uppercase ml-2">Senha (mín. 6 caracteres)</label>
+                  <input type="password" required minLength={6} value={password} onChange={e => setPassword(e.target.value)} disabled={loading}
+                    className="w-full bg-void border border-white/10 rounded-2xl px-6 py-5 text-white font-mono placeholder:text-white/20 focus:outline-none focus:border-signal/50 focus:ring-1 focus:ring-signal/50 transition-all disabled:opacity-50"
+                    placeholder="Crie uma chave segura" />
+                </div>
+
+                <button type="submit" disabled={loading}
+                  className="w-full mt-2 bg-signal text-void font-bold font-mono text-sm tracking-widest uppercase rounded-2xl px-6 py-6 hover:scale-[1.02] transition-all shadow-[0_0_30px_rgba(0,255,148,0.2)] flex items-center justify-center gap-3 disabled:opacity-60 disabled:scale-100"
+                >
+                  {loading ? <Loader2 size={20} className="animate-spin" /> : <ShieldCheck size={20} />}
+                  {loading ? 'Configurando...' : 'Configurar Ambiente Realtime'}
+                </button>
+
+                <button type="button" onClick={() => { setError(null); setMode('options') }}
+                  className="text-xs font-mono text-text-muted hover:text-white transition-colors tracking-widest uppercase text-center"
+                >
+                  ← Voltar às opções
+                </button>
+              </motion.form>
+            )}
+
+          </AnimatePresence>
         ) : (
+          /* ── Animação de Boot ── */
           <div className="flex flex-col gap-6 font-mono text-sm">
             <div className="p-8 rounded-3xl bg-void border border-white/5 space-y-6">
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-4 text-white">
                 {step >= 1 ? <CheckCircle2 size={16} className="text-signal" /> : <Loader2 size={16} className="animate-spin text-text-muted" />}
                 <span>Gerando arquitetura de DSP pessoal...</span>
               </motion.div>
-
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: step >= 2 ? 1 : 0 }} className="flex items-center gap-4 text-white">
                 {step >= 2 ? <CheckCircle2 size={16} className="text-signal" /> : step >= 1 ? <Loader2 size={16} className="animate-spin text-signal" /> : <div className="w-4" />}
                 <span>Inicializando AudioWorklet Engine...</span>
               </motion.div>
-
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: step >= 3 ? 1 : 0 }} className="flex items-center gap-4 text-white">
                 {step >= 3 ? <Activity size={16} className="text-signal animate-pulse" /> : step >= 2 ? <Loader2 size={16} className="animate-spin text-signal" /> : <div className="w-4" />}
-                <span className={step >= 3 ? 'text-signal font-bold' : ''}>
-                  Instância pronta. Entrando no Studio.
-                </span>
+                <span className={step >= 3 ? 'text-signal font-bold' : ''}>Instância pronta. Entrando no Studio.</span>
               </motion.div>
             </div>
           </div>
         )}
       </motion.div>
 
-      {/* Decorative Terminal HUD */}
+      {/* Decorative HUD */}
       <div className="fixed bottom-10 left-10 text-[10px] font-mono text-text-muted uppercase tracking-widest hidden md:block">
         <div className="flex items-center gap-2 mb-2"><TerminalSquare size={12} /> ALLOCATING NEW WORKSPACE</div>
-        <div>MEMORY: SHARED_ARRAY_BUFFER SECURED</div>
+        <div>PROVIDER: GITHUB OAUTH 2.0</div>
         <div>THREAD: C++ AUDIO THREAD ISOLATED</div>
       </div>
     </div>
   )
 }
+
+// ── SVG Components ────────────────────────────────────────────────────────────
+const GitHubIcon = ({ size }: { size: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z" />
+  </svg>
+)
 
 const CheckCircle2 = ({ size, className }: { size: number; className: string }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
