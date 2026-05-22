@@ -1,30 +1,54 @@
 'use client'
-import React, { useState, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Activity, ShieldCheck, TerminalSquare, Zap, Loader2 } from 'lucide-react'
+import { Activity, ShieldCheck, TerminalSquare, Zap, Loader2, AlertTriangle } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 type BootStep = 0 | 1 | 2 | 3
 
 export default function LoginPage() {
-  const [step, setStep] = useState<BootStep>(0)
+  const [step, setStep]         = useState<BootStep>(0)
+  const [email, setEmail]       = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError]       = useState<string | null>(null)
+  const [loading, setLoading]   = useState(false)
 
-  const handleLogin = useCallback((e: React.FormEvent) => {
+  const handleLogin = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
-    // Dispara todos os timers de uma vez no submit — sem depender de useEffect com step
+    setError(null)
+    setLoading(true)
+
+    const supabase = createClient()
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+
+    if (authError) {
+      setLoading(false)
+      setError(
+        authError.message === 'Invalid login credentials'
+          ? 'Credenciais inválidas. Verifique e-mail e senha.'
+          : authError.message
+      )
+      return
+    }
+
+    // Sucesso — dispara a sequência de boot animada
+    setLoading(false)
     setStep(1)
     setTimeout(() => setStep(2), 1500)
     setTimeout(() => setStep(3), 3000)
-    // location.replace é mais confiável que router.push com COOP/COEP ativos
     setTimeout(() => {
+      // location.replace é mais confiável que router.push com COOP/COEP ativos
       location.replace('/studio')
     }, 4500)
-  }, [])
+  }, [email, password])
 
   return (
     <div className="min-h-screen bg-void text-white flex flex-col items-center justify-center p-6 relative overflow-hidden">
       {/* Background Ambience */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/10 via-void to-void pointer-events-none" />
-      {/* Grade CSS substituindo textura externa (bloqueada pelo COEP) */}
       <div
         className="absolute inset-0 opacity-[0.04] pointer-events-none"
         style={{
@@ -60,31 +84,61 @@ export default function LoginPage() {
               onSubmit={handleLogin}
               className="flex flex-col gap-6"
             >
+              {/* Error Banner */}
+              <AnimatePresence>
+                {error && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    className="flex items-center gap-3 bg-red-500/10 border border-red-500/30 text-red-400 rounded-2xl px-5 py-4 text-sm font-mono"
+                  >
+                    <AlertTriangle size={16} className="shrink-0" />
+                    {error}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               <div className="space-y-2">
-                <label className="text-xs font-mono text-text-muted tracking-widest uppercase ml-2">ID do Usuário</label>
+                <label className="text-xs font-mono text-text-muted tracking-widest uppercase ml-2">
+                  ID do Usuário (E-mail)
+                </label>
                 <input
-                  type="text"
+                  type="email"
                   required
-                  className="w-full bg-void border border-white/10 rounded-2xl px-6 py-5 text-white font-mono placeholder:text-white/20 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
-                  placeholder="ENG-AUDIO-01"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  disabled={loading}
+                  className="w-full bg-void border border-white/10 rounded-2xl px-6 py-5 text-white font-mono placeholder:text-white/20 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all disabled:opacity-50"
+                  placeholder="audio@system.local"
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-mono text-text-muted tracking-widest uppercase ml-2">Chave de Acesso</label>
+                <label className="text-xs font-mono text-text-muted tracking-widest uppercase ml-2">
+                  Chave de Acesso (Senha)
+                </label>
                 <input
                   type="password"
                   required
-                  className="w-full bg-void border border-white/10 rounded-2xl px-6 py-5 text-white font-mono placeholder:text-white/20 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  disabled={loading}
+                  className="w-full bg-void border border-white/10 rounded-2xl px-6 py-5 text-white font-mono placeholder:text-white/20 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all disabled:opacity-50"
                   placeholder="••••••••••••"
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full mt-4 bg-white text-void font-bold font-mono text-sm tracking-widest uppercase rounded-2xl px-6 py-6 hover:scale-[1.02] transition-all shadow-[0_0_30px_rgba(255,255,255,0.2)] flex items-center justify-center gap-3"
+                disabled={loading}
+                className="w-full mt-4 bg-white text-void font-bold font-mono text-sm tracking-widest uppercase rounded-2xl px-6 py-6 hover:scale-[1.02] transition-all shadow-[0_0_30px_rgba(255,255,255,0.2)] flex items-center justify-center gap-3 disabled:opacity-60 disabled:scale-100"
               >
-                <ShieldCheck size={20} />
-                Iniciar Sequência de Boot
+                {loading ? (
+                  <Loader2 size={20} className="animate-spin" />
+                ) : (
+                  <ShieldCheck size={20} />
+                )}
+                {loading ? 'Verificando...' : 'Iniciar Sequência de Boot'}
               </button>
 
               <div className="mt-6 text-center">
@@ -104,7 +158,7 @@ export default function LoginPage() {
               className="flex flex-col gap-6 font-mono text-sm"
             >
               <div className="p-8 rounded-3xl bg-void border border-white/5 space-y-6">
-                {/* Step 1 — sempre visível após boot iniciar */}
+                {/* Step 1 */}
                 <div className="flex items-center gap-4 text-white">
                   {step >= 1
                     ? <CheckCircle2 size={16} className="text-signal" />

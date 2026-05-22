@@ -1,38 +1,75 @@
 'use client'
-import React, { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Activity, ShieldCheck, TerminalSquare, Zap, Loader2, Cpu } from 'lucide-react'
+import { Activity, ShieldCheck, TerminalSquare, Loader2, Cpu, AlertTriangle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 
 export default function RegisterPage() {
-  const [step, setStep] = useState(0)
+  const [step, setStep]         = useState(0)
+  const [name, setName]         = useState('')
+  const [email, setEmail]       = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError]       = useState<string | null>(null)
+  const [loading, setLoading]   = useState(false)
   const router = useRouter()
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
-    setStep(1)
-  }
+    setError(null)
+    setLoading(true)
 
-  useEffect(() => {
-    if (step === 1) {
-      const t1 = setTimeout(() => setStep(2), 1500)
-      const t2 = setTimeout(() => setStep(3), 3000)
-      const t3 = setTimeout(() => {
-        router.push('/studio')
-      }, 4500)
-      return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
+    if (password.length < 6) {
+      setError('A senha deve ter no mínimo 6 caracteres.')
+      setLoading(false)
+      return
     }
-    return undefined
-  }, [step, router])
+
+    const supabase = createClient()
+    const { error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { display_name: name }, // salvo em user_metadata
+      },
+    })
+
+    if (authError) {
+      setLoading(false)
+      setError(
+        authError.message.includes('already registered')
+          ? 'Este e-mail já está em uso. Tente fazer login.'
+          : authError.message
+      )
+      return
+    }
+
+    // Sucesso — dispara a sequência de boot animada
+    setLoading(false)
+    setStep(1)
+    const t1 = setTimeout(() => setStep(2), 1500)
+    const t2 = setTimeout(() => setStep(3), 3000)
+    const t3 = setTimeout(() => {
+      router.push('/studio')
+    }, 4500)
+
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
+  }
 
   return (
     <div className="min-h-screen bg-void text-white flex flex-col items-center justify-center p-6 relative overflow-hidden">
       {/* Background Ambience */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-signal/5 via-void to-void pointer-events-none" />
-      <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 pointer-events-none" />
+      <div
+        className="absolute inset-0 opacity-[0.04] pointer-events-none"
+        style={{
+          backgroundImage:
+            'repeating-linear-gradient(0deg, transparent, transparent 30px, rgba(0,255,148,0.15) 30px, rgba(0,255,148,0.15) 31px), repeating-linear-gradient(90deg, transparent, transparent 30px, rgba(0,255,148,0.15) 30px, rgba(0,255,148,0.15) 31px)',
+        }}
+      />
 
       {/* Auth Container */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
@@ -42,7 +79,9 @@ export default function RegisterPage() {
           <div className="w-20 h-20 rounded-3xl bg-void border border-white/10 flex items-center justify-center mb-6 shadow-glow">
             <Cpu size={32} className="text-signal" />
           </div>
-          <h1 className="text-4xl font-display font-bold text-white mb-2 text-center text-balance">Crie sua Runtime DSP</h1>
+          <h1 className="text-4xl font-display font-bold text-white mb-2 text-center text-balance">
+            Crie sua Runtime DSP
+          </h1>
           <p className="text-text-secondary font-mono text-xs md:text-sm tracking-widest uppercase text-center text-balance">
             Inicialize sua workstation automotiva pessoal.
           </p>
@@ -50,44 +89,80 @@ export default function RegisterPage() {
 
         {step === 0 ? (
           <form onSubmit={handleRegister} className="flex flex-col gap-6">
+            {/* Error Banner */}
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center gap-3 bg-red-500/10 border border-red-500/30 text-red-400 rounded-2xl px-5 py-4 text-sm font-mono"
+              >
+                <AlertTriangle size={16} className="shrink-0" />
+                {error}
+              </motion.div>
+            )}
+
             <div className="space-y-2">
-              <label className="text-xs font-mono text-text-muted tracking-widest uppercase ml-2">Identificação (Nome)</label>
-              <input 
-                type="text" 
+              <label className="text-xs font-mono text-text-muted tracking-widest uppercase ml-2">
+                Identificação (Nome)
+              </label>
+              <input
+                type="text"
                 required
-                className="w-full bg-void border border-white/10 rounded-2xl px-6 py-5 text-white font-mono placeholder:text-white/20 focus:outline-none focus:border-signal/50 focus:ring-1 focus:ring-signal/50 transition-all"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                disabled={loading}
+                className="w-full bg-void border border-white/10 rounded-2xl px-6 py-5 text-white font-mono placeholder:text-white/20 focus:outline-none focus:border-signal/50 focus:ring-1 focus:ring-signal/50 transition-all disabled:opacity-50"
                 placeholder="Ex: Engenheiro Acústico"
               />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-mono text-text-muted tracking-widest uppercase ml-2">ID de Sessão (E-mail)</label>
-              <input 
-                type="email" 
+              <label className="text-xs font-mono text-text-muted tracking-widest uppercase ml-2">
+                ID de Sessão (E-mail)
+              </label>
+              <input
+                type="email"
                 required
-                className="w-full bg-void border border-white/10 rounded-2xl px-6 py-5 text-white font-mono placeholder:text-white/20 focus:outline-none focus:border-signal/50 focus:ring-1 focus:ring-signal/50 transition-all"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                disabled={loading}
+                className="w-full bg-void border border-white/10 rounded-2xl px-6 py-5 text-white font-mono placeholder:text-white/20 focus:outline-none focus:border-signal/50 focus:ring-1 focus:ring-signal/50 transition-all disabled:opacity-50"
                 placeholder="audio@system.local"
               />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-mono text-text-muted tracking-widest uppercase ml-2">Chave Mestra (Senha)</label>
-              <input 
-                type="password" 
+              <label className="text-xs font-mono text-text-muted tracking-widest uppercase ml-2">
+                Chave Mestra (Senha — mín. 6 caracteres)
+              </label>
+              <input
+                type="password"
                 required
-                className="w-full bg-void border border-white/10 rounded-2xl px-6 py-5 text-white font-mono placeholder:text-white/20 focus:outline-none focus:border-signal/50 focus:ring-1 focus:ring-signal/50 transition-all"
+                minLength={6}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                disabled={loading}
+                className="w-full bg-void border border-white/10 rounded-2xl px-6 py-5 text-white font-mono placeholder:text-white/20 focus:outline-none focus:border-signal/50 focus:ring-1 focus:ring-signal/50 transition-all disabled:opacity-50"
                 placeholder="Crie uma chave segura"
               />
             </div>
 
-            <button 
+            <button
               type="submit"
-              className="w-full mt-4 bg-signal text-void font-bold font-mono text-sm tracking-widest uppercase rounded-2xl px-6 py-6 hover:scale-[1.02] transition-all shadow-[0_0_30px_rgba(0,255,148,0.2)] flex items-center justify-center gap-3"
+              disabled={loading}
+              className="w-full mt-4 bg-signal text-void font-bold font-mono text-sm tracking-widest uppercase rounded-2xl px-6 py-6 hover:scale-[1.02] transition-all shadow-[0_0_30px_rgba(0,255,148,0.2)] flex items-center justify-center gap-3 disabled:opacity-60 disabled:scale-100"
             >
-              <ShieldCheck size={20} />
-              Configurar Ambiente Realtime
+              {loading ? (
+                <Loader2 size={20} className="animate-spin" />
+              ) : (
+                <ShieldCheck size={20} />
+              )}
+              {loading ? 'Configurando...' : 'Configurar Ambiente Realtime'}
             </button>
 
             <div className="mt-6 text-center">
-              <a href="/auth/login" className="text-xs font-mono text-text-secondary hover:text-white transition-colors tracking-widest uppercase">
+              <a
+                href="/auth/login"
+                className="text-xs font-mono text-text-secondary hover:text-white transition-colors tracking-widest uppercase"
+              >
                 Já possui uma Runtime? Fazer Login
               </a>
             </div>
@@ -99,7 +174,7 @@ export default function RegisterPage() {
                 {step >= 1 ? <CheckCircle2 size={16} className="text-signal" /> : <Loader2 size={16} className="animate-spin text-text-muted" />}
                 <span>Gerando arquitetura de DSP pessoal...</span>
               </motion.div>
-              
+
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: step >= 2 ? 1 : 0 }} className="flex items-center gap-4 text-white">
                 {step >= 2 ? <CheckCircle2 size={16} className="text-signal" /> : step >= 1 ? <Loader2 size={16} className="animate-spin text-signal" /> : <div className="w-4" />}
                 <span>Inicializando AudioWorklet Engine...</span>
@@ -107,7 +182,9 @@ export default function RegisterPage() {
 
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: step >= 3 ? 1 : 0 }} className="flex items-center gap-4 text-white">
                 {step >= 3 ? <Activity size={16} className="text-signal animate-pulse" /> : step >= 2 ? <Loader2 size={16} className="animate-spin text-signal" /> : <div className="w-4" />}
-                <span className={step >= 3 ? "text-signal font-bold" : ""}>Instância pronta. Entrando no Studio.</span>
+                <span className={step >= 3 ? 'text-signal font-bold' : ''}>
+                  Instância pronta. Entrando no Studio.
+                </span>
               </motion.div>
             </div>
           </div>
@@ -124,7 +201,7 @@ export default function RegisterPage() {
   )
 }
 
-const CheckCircle2 = ({ size, className }: { size: number, className: string }) => (
+const CheckCircle2 = ({ size, className }: { size: number; className: string }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
     <polyline points="22 4 12 14.01 9 11.01"></polyline>
