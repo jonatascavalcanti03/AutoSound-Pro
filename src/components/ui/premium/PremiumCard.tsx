@@ -10,6 +10,7 @@ interface PremiumCardProps {
   className?: string
   icon?: React.ElementType
   glowColor?: string
+  action?: React.ReactNode
 }
 
 export function PremiumCard({ 
@@ -18,7 +19,8 @@ export function PremiumCard({
   subtitle, 
   className, 
   icon: Icon,
-  glowColor = 'var(--primary)' 
+  glowColor = 'var(--primary)',
+  action,
 }: PremiumCardProps) {
   return (
     <motion.div
@@ -52,10 +54,14 @@ export function PremiumCard({
             )}
           </div>
           
-          {/* Status Indicator (Mini) */}
-          <div className="flex gap-1">
-            <div className="w-1 h-1 rounded-full bg-primary/40" />
-            <div className="w-1 h-1 rounded-full bg-primary/20" />
+          <div className="flex items-center gap-3">
+            {/* Action slot */}
+            {action && <div>{action}</div>}
+            {/* Status Indicator (Mini) */}
+            <div className="flex gap-1">
+              <div className="w-1 h-1 rounded-full bg-primary/40" />
+              <div className="w-1 h-1 rounded-full bg-primary/20" />
+            </div>
           </div>
         </div>
       )}

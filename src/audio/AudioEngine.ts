@@ -159,6 +159,7 @@ class AudioEngineClass {
     AudioEventBus.subscribe(AudioEventType.MASTER_GAIN, (p) => this.setMasterGain(p.value as number))
     AudioEventBus.subscribe(AudioEventType.CHANNEL_GAIN, (p) => this.channels.get(p.channelId!)?.setGain(p.value as number))
     AudioEventBus.subscribe(AudioEventType.CHANNEL_MUTE, (p) => this.channels.get(p.channelId!)?.setMute(p.value as boolean))
+    AudioEventBus.subscribe(AudioEventType.CHANNEL_SOLO, (p) => this.handleSolo(p.channelId!, p.value as boolean))
     AudioEventBus.subscribe(AudioEventType.CHANNEL_PHASE, (p) => this.channels.get(p.channelId!)?.setPhase(p.value as boolean))
     AudioEventBus.subscribe(AudioEventType.CHANNEL_PAN, (p) => this.channels.get(p.channelId!)?.setPan(p.value as number))
     AudioEventBus.subscribe(AudioEventType.CHANNEL_DELAY, (p) => this.channels.get(p.channelId!)?.setDelay(p.value as number))
@@ -170,6 +171,16 @@ class AudioEngineClass {
     AudioEventBus.subscribe(AudioEventType.CROSSOVER_LP_FREQ, (p) => this.channels.get(p.channelId!)?.setLpFreq(p.value as number))
     AudioEventBus.subscribe(AudioEventType.CROSSOVER_HP_TOGGLE, (p) => this.channels.get(p.channelId!)?.setHpEnabled(p.value as boolean))
     AudioEventBus.subscribe(AudioEventType.CROSSOVER_LP_TOGGLE, (p) => this.channels.get(p.channelId!)?.setLpEnabled(p.value as boolean))
+  }
+  // ───────────────────────────────────────────────────────────────────────────
+
+  // ─── Solo Routing ────────────────────────────────────────────────────────────
+  private handleSolo(soloedChannelId: string, isSoloed: boolean) {
+    // Propaga para todos os grafos: o canal solado fica ativo,
+    // os demais são silenciados enquanto o solo estiver ligado.
+    this.channels.forEach((graph, id) => {
+      graph.setSolo(id === soloedChannelId ? isSoloed : false, isSoloed)
+    })
   }
   // ───────────────────────────────────────────────────────────────────────────
 
@@ -222,13 +233,13 @@ class AudioEngineClass {
 
   public getSpectrumData(outArray: Uint8Array) {
     if (!this.analyser) return
-    this.analyser.getByteFrequencyData(outArray as unknown as Uint8Array)
+    this.analyser.getByteFrequencyData(outArray as Uint8Array<ArrayBuffer>)
   }
 
   public getChannelSpectrumData(channelId: string, outArray: Uint8Array) {
     const graph = this.channels.get(channelId)
     if (graph && graph.analyser) {
-      graph.analyser.getByteFrequencyData(outArray as unknown as Uint8Array)
+      graph.analyser.getByteFrequencyData(outArray as Uint8Array<ArrayBuffer>)
     }
   }
 

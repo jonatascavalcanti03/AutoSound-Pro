@@ -1,6 +1,6 @@
 'use client'
-import React, { useEffect, useRef, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useEffect, useRef, useState } from 'react'
+import { motion } from 'framer-motion'
 import { 
   Activity, Zap, BarChart3, Target, 
   Cpu, Thermometer, ShieldAlert, Radio,

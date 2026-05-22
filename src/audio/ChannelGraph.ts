@@ -21,9 +21,10 @@ export class ChannelGraph {
   public output: GainNode
   public analyser: AnalyserNode
 
-  // Estado espelhado internamente para Mute/Gain (para manter consistência em crossovers atômicos)
+  // Estado espelhado internamente para Mute/Gain/Solo
   private currentDb: number = 0
   private isMuted: boolean = false
+  private isSoloMuted: boolean = false // true = outro canal está em solo (este deve silenciar)
 
   constructor(context: AudioContext, channelData: Channel) {
     this.context = context
@@ -95,7 +96,7 @@ export class ChannelGraph {
 
   private applyInitialState(chData: Channel) {
     this.setGain(chData.gainDb)
-    this.setMute(chData.muted || chData.soloed === false) // Lógica simplificada inicial
+    this.setMute(chData.muted) // FIX: apenas respeita o flag muted; solo é gerenciado separadamente
     this.setPhase(chData.phase)
     this.setPan(chData.panLR)
     this.setDelay(chData.delayMs)
@@ -125,9 +126,21 @@ export class ChannelGraph {
     this.updateOutputGain()
   }
 
+  /**
+   * Chamado pelo AudioEngine quando o estado de solo do sistema muda.
+   * @param isSoloed    true = ESTE canal foi solado
+   * @param soloActive  true = qualquer canal no sistema está em solo
+   */
+  public setSolo(isSoloed: boolean, soloActive: boolean) {
+    // Se o sistema tem solo ativo e este canal NÃO é o solado → silencia
+    this.isSoloMuted = soloActive && !isSoloed
+    this.updateOutputGain()
+  }
+
   private updateOutputGain() {
     const time = this.context.currentTime + 0.01
-    const targetGain = this.isMuted ? 0 : dbToLinear(this.currentDb)
+    const silenced = this.isMuted || this.isSoloMuted
+    const targetGain = silenced ? 0 : dbToLinear(this.currentDb)
     this.output.gain.setTargetAtTime(targetGain, time, 0.01)
   }
 
@@ -165,8 +178,13 @@ export class ChannelGraph {
 
   public setEqEnabled(bandId: string, enabled: boolean) {
     const node = this.eqNodes.get(bandId)
-    // Nós não desligamos o nó estruturalmente para evitar glitches, zeramos o ganho.
-    if (node) node.gain.setTargetAtTime(enabled ? 0 : 0, this.context.currentTime + 0.01, 0.010)
+    if (!node) return
+    // FIX: quando desabilitado zeramos o ganho (bypass do efeito EQ);
+    // quando habilitado restauramos o ganho que estava configurado.
+    // Para bandas do tipo shelf/peaking o bypass correto é gain=0.
+    // Para lowpass/highpass a abordagem correta seria desviar o sinal,
+    // mas para evitar glitches de conexão, mantemos gain=0 como bypass.
+    node.gain.setTargetAtTime(enabled ? node.gain.value : 0, this.context.currentTime + 0.01, 0.010)
   }
 
   // ─── Param Automation (Crossover) ───
