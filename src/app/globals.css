@@ -4,53 +4,46 @@
 @theme {
   /* Backgrounds OLED-first */
   --color-void:     #000000;
-  --color-deep:     #0A0A0F;
-  --color-surface:  #12121A;
-  --color-elevated: #1A1A26;
-  --color-hover:    #22223A;
-  --color-border:   rgba(255, 255, 255, 0.06);
-  --color-border-active: rgba(0, 212, 255, 0.5);
+  --color-deep:     #020202;
+  --color-surface:  #050505;
+  --color-elevated: #0A0A0A;
+  --color-hover:    #111111;
+  --color-border:   rgba(255, 255, 255, 0.05);
+  --color-border-active: rgba(0, 212, 255, 0.2);
 
-  /* Accent — Electric Blue */
+  /* Accent — Primary (Cyan Neon) */
   --color-primary:     #00D4FF;
-  --color-primary-dim: #0088AA;
+  --color-primary-glow: rgba(0, 212, 255, 0.4);
 
-  /* Accent — Signal Green */
-  --color-signal:     #00FF88;
-  --color-signal-dim: #00AA5A;
+  /* Accent — Signal (Green Neon) */
+  --color-signal:     #00FF94;
+  --color-signal-glow: rgba(0, 255, 148, 0.4);
 
-  /* Accent — Amber */
-  --color-amber:     #FF9500;
-  --color-amber-dim: #CC7700;
+  /* Accent — Warning (Amber) */
+  --color-amber:     #FFB800;
+  --color-amber-glow: rgba(255, 184, 0, 0.4);
 
-  /* Accent — Danger Red */
-  --color-danger:     #FF3B5C;
-  --color-danger-dim: #CC0022;
-
-  /* Accent — Purple */
-  --color-purple:     #BF5AF2;
-  --color-purple-dim: #8B3FBF;
+  /* Accent — Danger/Clip (Red Neon) */
+  --color-danger:     #FF3366;
+  --color-danger-glow: rgba(255, 51, 102, 0.4);
 
   /* Text */
-  --color-text-primary:   #FFFFFF;
-  --color-text-secondary: #8888AA;
-  --color-text-muted:     #44445A;
+  --color-text-pure:   #FFFFFF;
+  --color-text-primary: #E0E0E0;
+  --color-text-secondary: #888899;
+  --color-text-muted:     #555566;
 
-  /* Typography */
-  --font-display: var(--font-orbitron), monospace;
-  --font-ui:      var(--font-inter), sans-serif;
-  --font-mono:    var(--font-jetbrains), 'Courier New', monospace;
-
-  /* Shadows */
-  --shadow-glow:    0 0 20px rgba(0, 212, 255, 0.25);
-  --shadow-glow-sm: 0 0 8px  rgba(0, 212, 255, 0.2);
-  --shadow-panel:   0 4px 24px rgba(0, 0, 0, 0.6);
+  /* Shadows & Glows */
+  --shadow-glow:    0 0 20px var(--color-primary-glow);
+  --shadow-glow-sm: 0 0 10px rgba(0, 212, 255, 0.2);
+  --shadow-glow-danger: 0 0 30px var(--color-danger-glow);
+  --shadow-panel:   0 8px 32px rgba(0, 0, 0, 0.8);
   --shadow-inset:   inset 0 2px 8px rgba(0, 0, 0, 0.5);
-  --shadow-knob:    0 4px 16px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255,255,255,0.08);
 
   /* Animations */
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-fluid: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-cinematic: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* ─── Base Reset ─────────────────────────────────────────────────────────────── */
@@ -61,67 +54,68 @@
 }
 
 html {
-  height: 100%;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
 }
 
 body {
-  height: 100%;
-  background-color: var(--color-deep);
+  background-color: var(--color-void);
   color: var(--color-text-primary);
-  font-family: var(--font-ui);
+  font-family: var(--font-inter), sans-serif;
   font-size: 14px;
   line-height: 1.5;
-  overflow: hidden; /* App shell controla scroll */
 }
 
-#__next, main {
-  height: 100%;
+#__next {
+  min-height: 100vh;
 }
 
 /* ─── Scrollbar Custom (Webkit) ──────────────────────────────────────────────── */
 ::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+  width: 2px;
+  height: 2px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--color-surface);
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--color-elevated);
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 2px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-primary-dim);
+  background: var(--color-primary);
 }
 
 /* ─── Selection ──────────────────────────────────────────────────────────────── */
 ::selection {
   background: rgba(0, 212, 255, 0.3);
-  color: var(--color-text-primary);
+  color: var(--color-text-pure);
 }
 
 /* ─── Focus Ring ─────────────────────────────────────────────────────────────── */
 :focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 1px solid var(--color-primary);
   outline-offset: 2px;
   border-radius: 4px;
 }
 
 /* ─── Utility Classes ────────────────────────────────────────────────────────── */
-.font-display { font-family: var(--font-display); }
-.font-mono    { font-family: var(--font-mono); }
+.font-display { font-family: var(--font-orbitron), var(--font-inter), sans-serif; }
+.font-mono    { font-family: var(--font-jetbrains), 'Courier New', monospace; }
 
 .text-glow {
   text-shadow: 0 0 12px var(--color-primary);
 }
 
+.text-glow-danger {
+  text-shadow: 0 0 12px var(--color-danger);
+}
+
 .glass-panel {
-  background: rgba(18, 18, 26, 0.8);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(5, 5, 5, 0.6);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   border: 1px solid var(--color-border);
 }
 
@@ -140,42 +134,42 @@ body {
   100% { transform: translateY(100vh); }
 }
 
-@keyframes meter-peak-fall {
-  0%   { opacity: 1; }
-  80%  { opacity: 1; }
-  100% { opacity: 0; transform: translateY(4px); }
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-@keyframes fade-in-up {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+@keyframes panic-strobe {
+  0%, 100% { border-color: rgba(255, 51, 102, 0.1); box-shadow: none; }
+  50% { border-color: rgba(255, 51, 102, 0.8); box-shadow: inset 0 0 50px rgba(255, 51, 102, 0.2); }
 }
 
 .animate-pulse-glow  { animation: pulse-glow 2s ease-in-out infinite; }
-.animate-fade-in-up  { animation: fade-in-up 200ms var(--ease-out-expo) both; }
+.animate-fade-in-up  { animation: fade-in-up 400ms var(--ease-fluid) both; }
+.animate-panic       { animation: panic-strobe 1s ease-in-out infinite; }
 
 /* ─── LED indicator ──────────────────────────────────────────────────────────── */
 .led {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: var(--color-text-muted);
-  transition: background 100ms, box-shadow 100ms;
+  transition: background 150ms, box-shadow 150ms;
 }
 .led--active {
   background: var(--color-signal);
-  box-shadow: 0 0 6px var(--color-signal);
+  box-shadow: 0 0 8px var(--color-signal);
 }
 .led--warning {
   background: var(--color-amber);
-  box-shadow: 0 0 6px var(--color-amber);
+  box-shadow: 0 0 8px var(--color-amber);
 }
 .led--danger {
   background: var(--color-danger);
-  box-shadow: 0 0 6px var(--color-danger);
+  box-shadow: 0 0 8px var(--color-danger);
   animation: pulse-glow 500ms ease-in-out infinite;
 }
 .led--primary {
   background: var(--color-primary);
-  box-shadow: 0 0 6px var(--color-primary);
+  box-shadow: 0 0 8px var(--color-primary);
 }

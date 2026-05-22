@@ -41,9 +41,9 @@ export default function RootLayout({
   return (
     <html
       lang="pt-BR"
-      className={`h-full ${inter.variable} ${orbitron.variable} ${jetbrainsMono.variable}`}
+      className={`${inter.variable} ${orbitron.variable} ${jetbrainsMono.variable}`}
     >
-      <body className="h-full overflow-hidden antialiased">
+      <body className="antialiased bg-void text-text-primary overflow-x-hidden">
         {children}
       </body>
     </html>
